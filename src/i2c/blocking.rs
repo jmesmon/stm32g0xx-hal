@@ -37,7 +37,7 @@ macro_rules! flush_txdr {
     ($i2c:expr) => {
         // If a pending TXIS flag is set, write dummy data to TXDR
         if $i2c.isr.read().txis().bit_is_set() {
-            $i2c.txdr.write(|w| unsafe { w.txdata().bits(0) });
+            $i2c.txdr.write(|w| w.txdata().bits(0));
         }
 
         // If TXDR is not flagged as empty, write 1 to flush it
@@ -78,9 +78,9 @@ macro_rules! busy_wait {
             } else if isr.tcr().bit_is_set() {
                 // This condition Will only happen when reload == 1 and sbr == 1 (slave) and nbytes was written.
                 // Send a NACK, set nbytes to clear tcr flag
-                $i2c.cr2.modify(|_, w| unsafe {
+                $i2c.cr2.modify(|_, w|
                     w.nack().set_bit().nbytes().bits(1 as u8)
-                });
+                );
                 // Make one extra loop here to wait on the stop condition
             } else if isr.addr().bit_is_set() {
                 // in case of a master write_read operation, this flag is the only exit for the function.
@@ -176,7 +176,7 @@ macro_rules! i2c {
                 i2c.timingr.write(|w| unsafe { w.bits(timing_bits) });
 
                 // Enable the I2C processing
-                i2c.cr1.modify(|_, w| unsafe {
+                i2c.cr1.modify(|_, w| {
                     w.pe()
                         .set_bit()
                         .dnf()
@@ -186,8 +186,8 @@ macro_rules! i2c {
                 });
 
                 if config.slave_address_1 > 0 {
-                    i2c.oar1.write(|w| unsafe {
-                        w.oa1_7_1().bits(config.slave_address_1 as u8)
+                    i2c.oar1.write(|w| {
+                        w.oa1().bits(config.slave_address_1 << 1)
                         .oa1mode().bit(config.address_11bits)
                         .oa1en().set_bit()
                     });
@@ -196,7 +196,7 @@ macro_rules! i2c {
                 }
 
                 if config.slave_address_2 > 0 {
-                    i2c.oar2.write( |w| unsafe {
+                    i2c.oar2.write( |w| {
                         w.oa2msk().bits(  config.slave_address_mask as u8)
                         .oa2().bits(config.slave_address_2)
                         .oa2en().set_bit()
@@ -263,7 +263,7 @@ macro_rules! i2c {
                 // Set START and prepare to send `bytes`.
                 // The START bit can be set even if the bus is BUSY or
                 // I2C is in slave mode.
-                self.i2c.cr2.write(|w| unsafe {
+                self.i2c.cr2.write(|w| {
                     w
                         // Set number of bytes to transfer
                         .nbytes().bits(sndlen as u8)
@@ -286,7 +286,7 @@ macro_rules! i2c {
                 for byte in snd_buffer {
                     busy_wait!(self.i2c, txis, bit_is_set, idx, sndlen);
                     // Put byte on the wire
-                    self.i2c.txdr.write(|w| unsafe { w.txdata().bits(*byte) });
+                    self.i2c.txdr.write(|w| w.txdata().bits(*byte));
                     idx += 1;
                 }
                 // Wait until the write finishes before beginning to read.
@@ -294,7 +294,7 @@ macro_rules! i2c {
                 busy_wait!(self.i2c, tc, bit_is_set, idx, dummy );
 
                 // reSTART and prepare to receive bytes into `rcv_buffer`
-                self.i2c.cr2.write(|w| unsafe {
+                self.i2c.cr2.write(|w| {
                     w
                         // Set number of bytes to transfer
                         .nbytes().bits(rcvlen as u8)
@@ -334,7 +334,7 @@ macro_rules! i2c {
                 // This could be up to 50% of a bus cycle (ie. up to 0.5/freq)
                 while self.i2c.cr2.read().start().bit_is_set() {};
 
-                self.i2c.cr2.modify(|_, w| unsafe {
+                self.i2c.cr2.modify(|_, w| {
                     w
                         // Start transfer
                         .start().set_bit()
@@ -356,7 +356,7 @@ macro_rules! i2c {
 
                     // Put byte on the wire
                     if idx < buflen {
-                        self.i2c.txdr.write(|w| unsafe { w.txdata().bits(bytes[idx]) });
+                        self.i2c.txdr.write(|w| w.txdata().bits(bytes[idx]));
                         idx += 1;
                     }
                 }
@@ -380,7 +380,7 @@ macro_rules! i2c {
                 // Set START and prepare to receive bytes into `buffer`.
                 // The START bit can be set even if the bus
                 // is BUSY or I2C is in slave mode.
-                self.i2c.cr2.modify(|_, w| unsafe {
+                self.i2c.cr2.modify(|_, w| {
                     w
                         // Start transfer
                         .start().set_bit()
@@ -447,7 +447,7 @@ macro_rules! i2c {
                 assert!(buflen < 256 && buflen > 0);
 
                 // Set the nbytes and prepare to send bytes into `buffer`.
-                self.i2c.cr2.modify(|_, w| unsafe {
+                self.i2c.cr2.modify(|_, w| {
                     w.nbytes().bits( buflen as u8)
                     .reload().clear_bit()
                 });
@@ -463,13 +463,13 @@ macro_rules! i2c {
 
                     // Put byte on the wire
                     if idx < buflen {
-                        self.i2c.txdr.write(|w| unsafe { w.txdata().bits(bytes[idx]) });
+                        self.i2c.txdr.write(|w| { w.txdata().bits(bytes[idx]) });
                         idx += 1;
                     } else {
                         // we will never reach here. In case the master wants to read more than buflen
                         // the hardware will send 0xFF
                         // Also means that on slave side we cannot detect this error case
-                        self.i2c.txdr.write(|w| unsafe { w.txdata().bits(0x21) });
+                        self.i2c.txdr.write(|w| { w.txdata().bits(0x21) });
                     }
                 }
             }
@@ -480,7 +480,7 @@ macro_rules! i2c {
                 assert!(buflen < 256 && buflen > 0);
 
                 // Set the nbytes START and prepare to receive bytes into `buffer`.
-                self.i2c.cr2.modify(|_, w| unsafe {
+                self.i2c.cr2.modify(|_, w| {
                     w
                         // Set number of bytes to transfer: maximum as all incoming bytes will be ACK'ed
                         .nbytes().bits(buflen as u8)

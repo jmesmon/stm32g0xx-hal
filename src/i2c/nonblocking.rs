@@ -178,15 +178,13 @@ macro_rules! i2c {
                     if config.address_11bits {
                         i2c.oar1.write(|w| unsafe {
                             let addr = config.slave_address_1;
-                            w.oa1_0() .bit(addr&0x1  == 0x1)
-                            .oa1_7_1().bits( ((addr >> 1)  & 0x7F )as u8)
-                            .oa1_8_9().bits( ((addr >> 8)  & 0x3  )as u8)
+                            w.oa1().bits(addr)
                             .oa1mode().set_bit()
                             .oa1en().set_bit()
                         });
                     }else {
                         i2c.oar1.write(|w| unsafe {
-                            w.oa1_7_1().bits(config.slave_address_1 as u8)
+                            w.oa1.bits(config.slave_address_1 << 1)
                             .oa1mode().clear_bit()
                             .oa1en().set_bit()
                         });
@@ -551,12 +549,12 @@ macro_rules! i2c {
 
             fn set_address(&mut self, address:u16) {
                 self.i2c.oar1.write(|w| unsafe {
-                    w.oa1_7_1().bits(address as u8)
+                    w.oa1().bits((address << 1) as u8)
                     .oa1en().clear_bit()
                 });
                 // set the 7 bits address
                 self.i2c.oar1.write(|w| unsafe {
-                    w.oa1_7_1().bits(address as u8)
+                    w.oa1().bits((address << 1) as u8)
                     .oa1mode().clear_bit()
                     .oa1en().set_bit()
                 });

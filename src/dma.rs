@@ -162,7 +162,7 @@ pub trait Channel: private::Channel {
     fn set_transfer_length(&mut self, len: u16) {
         assert!(!self.is_enabled());
 
-        self.ch().ndtr.write(|w| unsafe { w.ndt().bits(len) });
+        self.ch().ndtr.write(|w| w.ndt().bits(len));
     }
 
     /// Set the word size.
@@ -176,7 +176,7 @@ pub trait Channel: private::Channel {
     /// Set the priority level of this channel
     fn set_priority_level(&mut self, priority: Priority) {
         let pl = priority.into();
-        self.ch().cr.modify(|_, w| unsafe { w.pl().bits(pl) });
+        self.ch().cr.modify(|_, w| w.pl().bits(pl));
     }
 
     /// Set the transfer direction
@@ -244,6 +244,7 @@ macro_rules! dma {
         channels: {
             $( $Ci:ident: (
                 $chi:ident,
+                $choi:expr,
                 $htifi:ident, $tcifi:ident, $teifi:ident, $gifi:ident,
                 $chtifi:ident, $ctcifi:ident, $cteifi:ident, $cgifi:ident,
                 $MuxCi: ident
@@ -279,7 +280,7 @@ macro_rules! dma {
             impl private::Channel for $Ci {
                 fn ch(&self) -> &stm32::dma::CH {
                     // NOTE(unsafe) $Ci grants exclusive access to this register
-                    unsafe { &(*DMA::ptr()).$chi }
+                    unsafe { &(*DMA::ptr()).ch[$choi] }
                 }
             }
 
@@ -344,11 +345,11 @@ macro_rules! dma {
 #[cfg(any(feature = "stm32g030", feature = "stm32g031", feature = "stm32g041"))]
 dma!(
     channels: {
-        C1: (ch1, htif1, tcif1, teif1, gif1, chtif1, ctcif1, cteif1, cgif1, C0),
-        C2: (ch2, htif2, tcif2, teif2, gif2, chtif2, ctcif2, cteif2, cgif2, C1),
-        C3: (ch3, htif3, tcif3, teif3, gif3, chtif3, ctcif3, cteif3, cgif3, C2),
-        C4: (ch4, htif4, tcif4, teif4, gif4, chtif4, ctcif4, cteif4, cgif4, C3),
-        C5: (ch5, htif5, tcif5, teif5, gif5, chtif5, ctcif5, cteif5, cgif5, C4),
+        C1: (ch1, 0, htif1, tcif1, teif1, gif1, chtif1, ctcif1, cteif1, cgif1, C0),
+        C2: (ch2, 1, htif2, tcif2, teif2, gif2, chtif2, ctcif2, cteif2, cgif2, C1),
+        C3: (ch3, 2, htif3, tcif3, teif3, gif3, chtif3, ctcif3, cteif3, cgif3, C2),
+        C4: (ch4, 3, htif4, tcif4, teif4, gif4, chtif4, ctcif4, cteif4, cgif4, C3),
+        C5: (ch5, 4, htif5, tcif5, teif5, gif5, chtif5, ctcif5, cteif5, cgif5, C4),
     },
 );
 

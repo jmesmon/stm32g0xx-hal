@@ -108,6 +108,7 @@ macro_rules! pwm {
                     let psc = (ratio - 1) / 0xffff;
                     let arr = ratio / (psc + 1) - 1;
 
+                    #[allow(unused_unsafe)]
                     unsafe {
                         self.tim.psc.write(|w| w.psc().bits(psc as u16));
                         self.tim.arr.write(|w| w.$arr().bits(arr as u16));
@@ -170,9 +171,7 @@ macro_rules! pwm_hal {
                 type Duty = u32;
 
                 fn disable(&mut self) {
-                    unsafe {
-                        (*$TIMX::ptr()).ccer.modify(|_, w| w.$ccxe().clear_bit());
-                    }
+                    (*$TIMX::ptr()).ccer.modify(|_, w| w.$ccxe().clear_bit());
                 }
 
                 fn enable(&mut self) {
