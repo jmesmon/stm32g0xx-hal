@@ -162,7 +162,7 @@ pub trait Channel: private::Channel {
     fn set_transfer_length(&mut self, len: u16) {
         assert!(!self.is_enabled());
 
-        self.ch().ndtr.write(|w| unsafe { w.ndt().bits(len) });
+        self.ch().ndtr.write(|w| w.ndt().bits(len));
     }
 
     /// Set the word size.
@@ -176,7 +176,7 @@ pub trait Channel: private::Channel {
     /// Set the priority level of this channel
     fn set_priority_level(&mut self, priority: Priority) {
         let pl = priority.into();
-        self.ch().cr.modify(|_, w| unsafe { w.pl().bits(pl) });
+        self.ch().cr.modify(|_, w| w.pl().bits(pl));
     }
 
     /// Set the transfer direction
