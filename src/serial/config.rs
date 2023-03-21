@@ -233,6 +233,11 @@ impl FullConfig {
         self.receiver_timeout = Some(t as u32);
         self
     }
+
+    pub fn receiver_timeout_bits(mut self, timeout_bits: u32) -> Self {
+        self.receiver_timeout = Some(timeout_bits);
+        self
+    }
 }
 
 #[derive(Debug)]
